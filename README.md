@@ -20,5 +20,6 @@ We have a plan to integrate a lot of NFT protocols, but this time we integrated 
 
 
 ## Frontend
-cd packages/frontend
-yarn dev
+`cd packages/frontend`
+then
+`yarn dev`
