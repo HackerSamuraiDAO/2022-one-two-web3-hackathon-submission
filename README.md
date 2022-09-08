@@ -18,3 +18,7 @@ We provide an interface to immigrate their NFT metadata to a decentralized manag
 We have a plan to integrate a lot of NFT protocols, but this time we integrated Chocomint (a multi-chain NFT minting tool) and Opensea into our dapps. Opensea provides the function of freezing the data [https://support.opensea.io/hc/en-us/articles/1500012270982-What-is-freezing-metadata-], so we integrated this function into our dapps.
 
 
+
+## Frontend
+cd packages/frontend
+yarn dev
