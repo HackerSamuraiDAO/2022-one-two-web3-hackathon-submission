@@ -1,0 +1,26 @@
+{
+  "ethereum": {
+    "name": "Ethereum",
+    "chainId": 1,
+    "contracts": {
+      "opensea": "0x9f9925e674fB221F88bFa96b5eF84E32d9c541c7"
+    },
+    "explorer": "https://etherscan.io/"
+  },
+  "rinkeby": {
+    "name": "Rinkeby",
+    "chainId": 4,
+    "contracts": {
+      "opensea": ""
+    },
+    "explorer": "https://rinkeby.etherscan.io/"
+  },
+  "polygon": {
+    "name": "Polygon",
+    "chainId": 137,
+    "contracts": {
+      "opensea": "0x2953399124f0cbb46d2cbacd8a89cf0599974963"
+    },
+    "explorer": "https://polygonscan.com/"
+  }
+}
