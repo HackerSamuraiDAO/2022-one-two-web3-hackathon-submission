@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Input, Select, Stack, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Heading, Input, Select, Stack, Text } from "@chakra-ui/react";
 import React, { useState } from "react";
 
 import config from "../../../config.json";
@@ -11,9 +11,9 @@ export const Main: React.FC = () => {
   const { console } = useConsole();
   const [nftContractAddress, setNFTContractAddress] = useState("");
   const [network, setNetwork] = useState("");
+  const [nftPlatform, setNFTPlatform] = useState("");
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
-  const [contractType, setContractType] = useState("");
   const [isSearched, setIsSearched] = useState(false);
 
   const handleChangeNFTContractAddress = (e: any) => {
@@ -24,10 +24,13 @@ export const Main: React.FC = () => {
     const inputValue = e.target.value;
     setNetwork(inputValue);
   };
+  const handleChangeNFTPlatform = (e: any) => {
+    const inputValue = e.target.value;
+    setNFTPlatform(inputValue);
+  };
 
   const checkIsOpenseaContract = (nftContractAddress: string, network: string) => {
     if (nftContractAddress == ethereumOpenseaContract && network == "ethereum") {
-      setContractType("opensea");
       setName("Opensea Shared Storefront");
       setSymbol("OPENSTORE");
     } else {
@@ -59,16 +62,21 @@ export const Main: React.FC = () => {
 
   return (
     <Box boxShadow={"base"} borderRadius="2xl" p="4" backgroundColor={config.styles.background.color.main}>
-      <Select placeholder="Select chains" onChange={handleChangeNetwork}>
+      <Heading textAlign={"center"}>NFT Decentralizer</Heading>
+      <Select placeholder="Select chains" onChange={handleChangeNetwork} mt={"5"}>
         <option value="polygon">Polygon</option>
         <option value="ethereum">Ethereum</option>
         <option value="rinkeby">Rinkeby</option>
       </Select>
-      <Input placeholder="Input NFT Contract Address" onChange={handleChangeNFTContractAddress}></Input>
+      <Input placeholder="Input NFT Contract Address" onChange={handleChangeNFTContractAddress} mt={"5"}></Input>
+      <Select placeholder="Select platforms" onChange={handleChangeNFTPlatform} mt={"5"}>
+        <option value="opensea">Opensea</option>
+        <option value="chocomint">Chocomint</option>
+      </Select>
 
       {isSearched && (
         <>
-          <Box>
+          <Box mt={"5"}>
             <Flex>
               <Text>Contract Address: </Text>
               <Text>{truncate(nftContractAddress, 5, 5)}</Text>
@@ -86,8 +94,8 @@ export const Main: React.FC = () => {
               <Text>{symbol}</Text>
             </Flex>
             <Flex>
-              <Text>Contract Type : </Text>
-              <Text>{contractType}</Text>
+              <Text>Platform : </Text>
+              <Text>{nftPlatform}</Text>
             </Flex>
           </Box>
         </>
@@ -102,6 +110,7 @@ export const Main: React.FC = () => {
               fontSize={"sm"}
               colorScheme={"blue"}
               rounded={"2xl"}
+              mt={"5"}
             >
               Select NFT
             </Button>
@@ -113,6 +122,7 @@ export const Main: React.FC = () => {
                 fontSize={"sm"}
                 colorScheme={"blue"}
                 rounded={"2xl"}
+                mt={"5"}
               >
                 Research
               </Button>
@@ -122,6 +132,7 @@ export const Main: React.FC = () => {
                 fontSize={"sm"}
                 colorScheme={"blue"}
                 rounded={"2xl"}
+                mt={"5"}
               >
                 Decentralize NFT{" "}
               </Button>
