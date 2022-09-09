@@ -1,37 +1,143 @@
-import { Box, Button, Stack } from "@chakra-ui/react";
-import React from "react";
+import { Box, Button, Flex, Heading, Input, Select, Stack, Text } from "@chakra-ui/react";
+import React, { useState } from "react";
 
 import config from "../../../config.json";
 import { ConnectWalletWrapper } from "../ConnectWalletWrapper";
 import { useConsole } from "../Console";
+import { truncate } from "../utils/truncate";
 
 export const Main: React.FC = () => {
+  const ethereumOpenseaContract = "0x495f947276749ce646f68ac8c248420045cb7b5e";
   const { console } = useConsole();
+  const [nftContractAddress, setNFTContractAddress] = useState("");
+  const [network, setNetwork] = useState("");
+  const [nftPlatform, setNFTPlatform] = useState("");
+  const [name, setName] = useState("");
+  const [symbol, setSymbol] = useState("");
+  const [isSearched, setIsSearched] = useState(false);
 
-  const main = () => {
-    console.log("main logic start...");
+  const handleChangeNFTContractAddress = (e: any) => {
+    const inputValue = e.target.value;
+    setNFTContractAddress(inputValue);
+  };
+  const handleChangeNetwork = (e: any) => {
+    const inputValue = e.target.value;
+    setNetwork(inputValue);
+  };
+  const handleChangeNFTPlatform = (e: any) => {
+    const inputValue = e.target.value;
+    setNFTPlatform(inputValue);
+  };
+
+  const checkIsOpenseaContract = (nftContractAddress: string, network: string) => {
+    if (nftContractAddress == ethereumOpenseaContract && network == "ethereum") {
+      setName("Opensea Shared Storefront");
+      setSymbol("OPENSTORE");
+    } else {
+      setNameAndSymbol(nftContractAddress, network);
+    }
+  };
+
+  const search = async (nftContractAddress: string, network: string) => {
+    checkIsOpenseaContract(nftContractAddress, network);
+
+    setIsSearched(true);
+  };
+
+  const setNameAndSymbol = async (nftContractAddress: string, network: string) => {
+    const fetch = require("node-fetch");
+
+    const url = "https://deep-index.moralis.io/api/v2/nft/" + nftContractAddress + "/metadata?chain=" + network;
+    const options = { method: "GET", headers: { Accept: "application/json", "X-API-Key": "test" } };
+    let a;
+
+    await fetch(url, options)
+      .then(async (res: any) => {
+        a = await res.json();
+        setName(a.name);
+        setSymbol(a.symbol);
+      })
+      .catch((err: any) => console.error("error:" + err));
   };
 
   return (
-    <Box
-      boxShadow={"base"}
-      borderRadius="2xl"
-      p="4"
-      backgroundColor={config.styles.background.color.main}
-    >
+    <Box boxShadow={"base"} borderRadius="2xl" p="4" backgroundColor={config.styles.background.color.main}>
+      <Heading textAlign={"center"}>NFT Decentralizer</Heading>
+      <Select placeholder="Select chains" onChange={handleChangeNetwork} mt={"5"}>
+        <option value="polygon">Polygon</option>
+        <option value="ethereum">Ethereum</option>
+        <option value="rinkeby">Rinkeby</option>
+      </Select>
+      <Input placeholder="Input NFT Contract Address" onChange={handleChangeNFTContractAddress} mt={"5"}></Input>
+      <Select placeholder="Select platforms" onChange={handleChangeNFTPlatform} mt={"5"}>
+        <option value="opensea">Opensea</option>
+        <option value="chocomint">Chocomint</option>
+      </Select>
+
+      {isSearched && (
+        <>
+          <Box mt={"5"}>
+            <Flex>
+              <Text>Contract Address: </Text>
+              <Text>{truncate(nftContractAddress, 5, 5)}</Text>
+            </Flex>
+            <Flex>
+              <Text>Network : </Text>
+              <Text>{network}</Text>
+            </Flex>
+            <Flex>
+              <Text>Contract Name : </Text>
+              <Text>{name}</Text>
+            </Flex>
+            <Flex>
+              <Text>Symbol : </Text>
+              <Text>{symbol}</Text>
+            </Flex>
+            <Flex>
+              <Text>Platform : </Text>
+              <Text>{nftPlatform}</Text>
+            </Flex>
+          </Box>
+        </>
+      )}
+
       <Stack spacing="4">
         <ConnectWalletWrapper>
-          <Button
-            w="full"
-            variant={config.styles.button.variant}
-            rounded={config.styles.button.rounded}
-            size={config.styles.button.size}
-            fontSize={config.styles.button.fontSize}
-            color={config.styles.text.color.primary}
-            onClick={main}
-          >
-            build something valuable
-          </Button>
+          {!isSearched ? (
+            <Button
+              width={"100%"}
+              onClick={() => search(nftContractAddress, network)}
+              fontSize={"sm"}
+              colorScheme={"blue"}
+              rounded={"2xl"}
+              mt={"5"}
+            >
+              Select NFT
+            </Button>
+          ) : (
+            <>
+              <Button
+                width={"100%"}
+                onClick={() => search(nftContractAddress, network)}
+                fontSize={"sm"}
+                colorScheme={"blue"}
+                rounded={"2xl"}
+                mt={"5"}
+              >
+                Research
+              </Button>
+              <Button
+                width={"100%"}
+                onClick={() => search(nftContractAddress, network)}
+                fontSize={"sm"}
+                colorScheme={"blue"}
+                rounded={"2xl"}
+                mt={"5"}
+              >
+                Decentralize NFT{" "}
+              </Button>
+            </>
+          )}
         </ConnectWalletWrapper>
       </Stack>
     </Box>
