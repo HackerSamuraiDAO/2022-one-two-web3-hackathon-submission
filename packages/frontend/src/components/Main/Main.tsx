@@ -1,7 +1,6 @@
 import { Box, Button, Flex, Heading, Input, Select, Stack, Text } from "@chakra-ui/react";
 import axios from "axios";
 import { ethers } from "ethers";
-import createClient from "ipfs-http-client";
 import { File, NFTStorage } from "nft.storage";
 import React, { useState } from "react";
 import { useNetwork, useSigner } from "wagmi";
@@ -20,7 +19,6 @@ export const Main: React.FC = () => {
   const [nftContractAddress, setNFTContractAddress] = useState("");
   const [network, setNetwork] = useState<Chain>("rinkeby");
   const [nftPlatform, setNFTPlatform] = useState("");
-  const [aaa, setAAA] = useState([]);
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [isSearched, setIsSearched] = useState(false);
@@ -76,13 +74,11 @@ export const Main: React.FC = () => {
     if (nftPlatform == "chocomint") {
       await GetChocoMetadata(nftContractAddress, network);
     }
+    const cid = await uploadFolderToIPFS();
+    const uri = "https://ipfs.io/ipfs/" + cid;
+    console.log("New BaseURI is " + uri);
+    await setNewURI(nftContractAddress, uri);
     return;
-  };
-
-  const asd = () => {
-    aaa.forEach((e: any) => {
-      console.log(e.tokenId);
-    });
   };
 
   // TODO : get current metadata bu reading chococontract (customBaseURI)
@@ -90,22 +86,31 @@ export const Main: React.FC = () => {
     if (!signer || !network) {
       return;
     }
+
+    console.log(nftContractAddress);
     const nftContract = new ethers.Contract(nftContractAddress, chocomoldABI, signer);
     const metadata = await nftContract.defaultBaseURI();
+    console.log("hello");
     const chainId = networks[network].chainId;
     const baseTokenURI = metadata + chainId + "/" + nftContractAddress;
     await axios.get(baseTokenURI).then((res) => {
-      console.log("aa");
-      setAAA(res.data.metadata);
+      let json = JSON.stringify(res.data.metadata, undefined, 1);
+      localStorage.setItem(nftContractAddress, json);
     });
     console.log(baseTokenURI);
   };
 
   // TODO : Upload the Folder
   const uploadFolderToIPFS = async () => {
-    console.log(NFT_STORAGE_TOKEN);
+    console.log("Metadata is been uploading now");
     const fixedDatas: any[] = [];
-    aaa.forEach((data: any) => {
+    const json = localStorage.getItem(nftContractAddress);
+    if (!json) {
+      console.log("No data in Localstorage")
+      return
+    }
+    let array = JSON.parse(json);
+    array.forEach((data: any) => {
       const newMetadata: any = {
         attributes: data.attributes,
         animation_url: data.animation_url,
@@ -119,32 +124,24 @@ export const Main: React.FC = () => {
     });
     const cid = await client.storeDirectory(fixedDatas);
     console.log(cid);
+    return cid;
   };
 
   // TODO : set CID
   const setNewURI = async (nftContractAddress: string, uid: string) => {
+    console.log("New URI is been setting");
     if (!signer) {
+      console.log("Error: No signer");
       return;
     }
     const nftContract = new ethers.Contract(nftContractAddress, chocomoldABI, signer);
     const transaction = await nftContract.setCustomBaseURI(uid);
-    console.log(transaction);
+    console.log("Tx hash : " + transaction.hash);
+    return transaction;
   };
 
   return (
     <Box boxShadow={"base"} borderRadius="2xl" p="4" backgroundColor={config.styles.background.color.main}>
-      <Button onClick={asd}>Test</Button>
-      <Button onClick={uploadFolderToIPFS}>IPFS</Button>
-      <Button
-        onClick={() => {
-          setNewURI(
-            nftContractAddress,
-            "https://gateway.pinata.cloud/ipfs/QmPEepDEHBd3HgHnNJUBm4sKrXR1iy54o3MqQqFnz196Q8/"
-          );
-        }}
-      >
-        SETURI
-      </Button>
       <Heading textAlign={"center"}>NFT Decentralizer</Heading>
       <Select placeholder="Select chains" onChange={handleChangeNetwork} mt={"5"} disabled={isSearched}>
         <option value="polygon">Polygon</option>
@@ -216,7 +213,7 @@ export const Main: React.FC = () => {
               </Button>
               <Button
                 width={"100%"}
-                onClick={() => GetChocoMetadata(nftContractAddress, network)}
+                onClick={() => decentralizeMetadata(nftContractAddress, network, nftPlatform)}
                 fontSize={"sm"}
                 colorScheme={"blue"}
                 rounded={"2xl"}
