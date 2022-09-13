@@ -1,0 +1,10 @@
+{
+    "opensea":{
+        "name": "Opensea",
+        "chains": ["ethereum", "polygon"]
+    },
+    "chocomint": {
+      "name": "Chocomint",
+      "chains": ["ethereum", "polygon"]
+    }
+}
