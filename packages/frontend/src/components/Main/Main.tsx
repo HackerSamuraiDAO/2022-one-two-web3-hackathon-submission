@@ -8,17 +8,19 @@ import { useNetwork, useSigner } from "wagmi";
 import config from "../../../config.json";
 import networks from "../../../networks.json";
 import { chocomoldABI } from "../../lib/web3/ChocomoldABI";
+import { openseaABI } from "../../lib/web3/OpenseaABI";
 import { Chain } from "../../type/chain";
 import { ConnectWalletWrapper } from "../ConnectWalletWrapper";
 import { useConsole } from "../Console";
 import { truncate } from "../utils/truncate";
 
 export const Main: React.FC = () => {
-  const ethereumOpenseaContract = "0x495f947276749ce646f68ac8c248420045cb7b5e";
+  const IPFSURI = "https://ipfs.io/ipfs/";
   const { console } = useConsole();
   const [nftContractAddress, setNFTContractAddress] = useState("");
   const [network, setNetwork] = useState<Chain>("rinkeby");
   const [nftPlatform, setNFTPlatform] = useState("");
+  const [tokenId, setTokenId] = useState("");
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [isSearched, setIsSearched] = useState(false);
@@ -38,19 +40,27 @@ export const Main: React.FC = () => {
   const handleChangeNFTPlatform = (e: any) => {
     const inputValue = e.target.value;
     setNFTPlatform(inputValue);
-  };
-
-  const checkIsOpenseaContract = (nftContractAddress: string, network: Chain) => {
-    if (nftContractAddress == ethereumOpenseaContract && network == "ethereum") {
+    if (inputValue == "opensea") {
       setName("Opensea Shared Storefront");
       setSymbol("OPENSTORE");
-    } else {
-      setNameAndSymbol(nftContractAddress, network);
     }
+  };
+  const handleChangeTokenId = (e: any) => {
+    const inputValue = e.target.value;
+    setTokenId(inputValue);
   };
 
   const search = async (nftContractAddress: string, network: Chain) => {
-    checkIsOpenseaContract(nftContractAddress, network);
+    const { ethereum } = window;
+    if (ethereum && chain && Number(chain.network) != networks[network].chainId) {
+      await ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: ethers.utils.hexValue(networks[network].chainId) }],
+      });
+    }
+    if (nftPlatform != "opensea") {
+      setNameAndSymbol(nftContractAddress, network);
+    }
     setIsSearched(true);
   };
 
@@ -70,46 +80,79 @@ export const Main: React.FC = () => {
       .catch((err: any) => console.error("error:" + err));
   };
 
-  const decentralizeMetadata = async (nftContractAddress: string, network: Chain, nftPlatform: string) => {
+  const decentralizeMetadata = async () => {
+    let transaction;
     if (nftPlatform == "chocomint") {
-      await GetChocoMetadata(nftContractAddress, network);
+      transaction = await chocomintImplementation(nftContractAddress, network);
     }
-    const cid = await uploadFolderToIPFS();
-    const uri = "https://ipfs.io/ipfs/" + cid;
-    console.log("New BaseURI is " + uri);
-    await setNewURI(nftContractAddress, uri);
-    return;
+    if (nftPlatform == "opensea") {
+      transaction = await openseaImplementation(network, tokenId);
+    }
+    return transaction;
   };
 
-  // TODO : get current metadata bu reading chococontract (customBaseURI)
-  const GetChocoMetadata = async (nftContractAddress: string, network: Chain) => {
+  const chocomintImplementation = async (nftContractAddress: string, network: Chain) => {
     if (!signer || !network) {
       return;
     }
-
-    console.log(nftContractAddress);
     const nftContract = new ethers.Contract(nftContractAddress, chocomoldABI, signer);
     const metadata = await nftContract.defaultBaseURI();
-    console.log("hello");
     const chainId = networks[network].chainId;
     const baseTokenURI = metadata + chainId + "/" + nftContractAddress;
     await axios.get(baseTokenURI).then((res) => {
       let json = JSON.stringify(res.data.metadata, undefined, 1);
       localStorage.setItem(nftContractAddress, json);
     });
-    console.log(baseTokenURI);
+    console.log("Current URI : " + baseTokenURI);
+    const cid = await uploadFolderToIPFS(nftContractAddress);
+    console.log("New URI is been setting");
+    const uri = IPFSURI + cid;
+    const transaction = await nftContract.setCustomBaseURI(uri);
+    console.log("Tx hash : " + transaction.hash);
+    return transaction;
+  };
+
+  const openseaImplementation = async (network: Chain, tokenId: string) => {
+    if (!signer || !network) {
+      return;
+    }
+    const openseaContractAddress = networks[network].opensea;
+    const openseaContract = new ethers.Contract(openseaContractAddress, openseaABI, signer);
+    const metadata = await openseaContract.uri(tokenId);
+    console.log(metadata.slice(0, -6));
+    let tokenUri = metadata.slice(0, -6) + "/" + tokenId;
+    try {
+      await axios.get(tokenUri).then((res) => {
+        let json = JSON.stringify(res.data, undefined, 1);
+        localStorage.setItem(tokenId, json);
+      });
+    } catch {
+      tokenUri = metadata + "/" + tokenId;
+      await axios.get(tokenUri).then((res) => {
+        let json = JSON.stringify(res.data, undefined, 1);
+        localStorage.setItem(tokenId, json);
+      });
+    }
+    console.log("Current URI:" + tokenUri);
+    const cid = await uploadFileToIPFS(tokenId);
+    console.log("New URI is been setting");
+    const uri = IPFSURI + cid;
+    const transaction = await openseaContract.setURI(tokenId, uri);
+    console.log("Tx hash : " + transaction.hash);
+    return transaction;
   };
 
   // TODO : Upload the Folder
-  const uploadFolderToIPFS = async () => {
+  const uploadFolderToIPFS = async (localStorageKey: string) => {
     console.log("Metadata is been uploading now");
     const fixedDatas: any[] = [];
-    const json = localStorage.getItem(nftContractAddress);
+    const json = localStorage.getItem(localStorageKey);
     if (!json) {
-      console.log("No data in Localstorage")
-      return
+      console.log("No data in Localstorage");
+      return;
     }
     let array = JSON.parse(json);
+    console.log(array);
     array.forEach((data: any) => {
       const newMetadata: any = {
         attributes: data.attributes,
@@ -123,41 +166,46 @@ export const Main: React.FC = () => {
       fixedDatas.push(file);
     });
     const cid = await client.storeDirectory(fixedDatas);
-    console.log(cid);
+    console.log("Metadata is stored to" + cid);
     return cid;
   };
 
-  // TODO : set CID
-  const setNewURI = async (nftContractAddress: string, uid: string) => {
-    console.log("New URI is been setting");
-    if (!signer) {
-      console.log("Error: No signer");
+  const uploadFileToIPFS = async (localStorageKey: string) => {
+    console.log("Metadata is been uploading now");
+    const json = localStorage.getItem(localStorageKey);
+    if (!json) {
+      console.log("No data in Localstorage");
       return;
     }
-    const nftContract = new ethers.Contract(nftContractAddress, chocomoldABI, signer);
-    const transaction = await nftContract.setCustomBaseURI(uid);
-    console.log("Tx hash : " + transaction.hash);
-    return transaction;
+    const file = new File([json], localStorageKey, { type: "application/json" });
+    const cid = await client.storeDirectory([file]);
+    console.log("Metadata is stored to" + cid);
+    return cid;
   };
 
   return (
     <Box boxShadow={"base"} borderRadius="2xl" p="4" backgroundColor={config.styles.background.color.main}>
       <Heading textAlign={"center"}>NFT Decentralizer</Heading>
-      <Select placeholder="Select chains" onChange={handleChangeNetwork} mt={"5"} disabled={isSearched}>
+      <Select onChange={handleChangeNetwork} mt={"5"} disabled={isSearched}>
+        <option value="rinkeby">Rinkeby</option>
         <option value="polygon">Polygon</option>
         <option value="ethereum">Ethereum</option>
-        <option value="rinkeby">Rinkeby</option>
       </Select>
-      <Input
-        placeholder="Input NFT Contract Address"
-        onChange={handleChangeNFTContractAddress}
-        mt={"5"}
-        disabled={isSearched}
-      ></Input>
       <Select placeholder="Select platforms" onChange={handleChangeNFTPlatform} mt={"5"} disabled={isSearched}>
         <option value="opensea">Opensea</option>
         <option value="chocomint">Chocomint</option>
       </Select>
+      {nftPlatform && nftPlatform != "opensea" && (
+        <Input
+          placeholder="Input NFT Contract Address"
+          onChange={handleChangeNFTContractAddress}
+          mt={"5"}
+          disabled={isSearched}
+        ></Input>
+      )}
+      {nftPlatform == "opensea" && (
+        <Input placeholder="Input NFT Token ID" onChange={handleChangeTokenId} mt={"5"} disabled={isSearched}></Input>
+      )}
 
       {isSearched && (
         <>
@@ -196,6 +244,7 @@ export const Main: React.FC = () => {
               colorScheme={"blue"}
               rounded={"2xl"}
               mt={"5"}
+              disabled={network && nftPlatform && (nftContractAddress || tokenId) ? false : true}
             >
               Select NFT
             </Button>
@@ -203,7 +252,9 @@ export const Main: React.FC = () => {
             <>
               <Button
                 width={"100%"}
-                onClick={() => setIsSearched(false)}
+                onClick={() => {
+                  setIsSearched(false);
+                }}
                 fontSize={"sm"}
                 colorScheme={"blue"}
                 rounded={"2xl"}
@@ -213,7 +264,7 @@ export const Main: React.FC = () => {
               </Button>
               <Button
                 width={"100%"}
-                onClick={() => decentralizeMetadata(nftContractAddress, network, nftPlatform)}
+                onClick={decentralizeMetadata}
                 fontSize={"sm"}
                 colorScheme={"blue"}
                 rounded={"2xl"}
