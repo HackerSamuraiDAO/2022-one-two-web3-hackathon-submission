@@ -281,7 +281,7 @@ const owner = await nftContract.owner()
 
   return (
     <Box boxShadow={"base"} borderRadius="2xl" p="4" backgroundColor={config.styles.background.color.main}>
-      <Heading textAlign={"center"}>NFT Decentralizer</Heading>
+      <Heading textAlign={"center"}>Metadata Decentralizer</Heading>
       <Text mt={"5"} size={"lg"}>
         Network:
       </Text>
