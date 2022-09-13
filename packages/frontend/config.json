@@ -1,13 +1,13 @@
 {
   "app": {
-    "name": "NAME",
-    "description": "DESCRIPTION",
+    "name": "Metadata Decentralizer",
+    "description": "",
     "uri": "http://localhost:3000",
     "defaultLog": "default log goes here"
   },
   "links": {
     "github": {
-      "uri": "https://github.com/HackerSamuraiDAO/template",
+      "uri": "https://github.com/HackerSamuraiDAO/metadata-decentralizer",
       "icon": ""
     }
   },

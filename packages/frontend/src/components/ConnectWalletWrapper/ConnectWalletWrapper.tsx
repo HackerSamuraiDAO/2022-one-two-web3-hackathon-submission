@@ -22,6 +22,7 @@ export const ConnectWalletWrapper: React.FC<ConnectWalletWrapperProps> = ({
         <Box>
           <Button
             width="full"
+            mt={"5"}
             variant={config.styles.button.variant}
             rounded={config.styles.button.rounded}
             size={config.styles.button.size}
