@@ -1,4 +1,4 @@
-# 2022-one-two-web3-hackathon-submission
+# Metadata Decentralizer
 
 ## Why we build this project
 Our goal is the users can manage their NFT data in a decentralized way
