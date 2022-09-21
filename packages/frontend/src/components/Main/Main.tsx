@@ -1,5 +1,27 @@
 import { ArrowRightIcon, CheckCircleIcon } from "@chakra-ui/icons";
-import { Box, Button, Flex, Heading, Input, Link, Select, Stack, Text, useToast } from "@chakra-ui/react";
+import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
+  Box,
+  Button,
+  Flex,
+  Heading,
+  Image,
+  Input,
+  Link,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalOverlay,
+  Select,
+  Stack,
+  Text,
+  useDisclosure,
+  useToast,
+} from "@chakra-ui/react";
 import axios from "axios";
 import { ethers } from "ethers";
 import { File, NFTStorage } from "nft.storage";
@@ -30,9 +52,11 @@ export const Main: React.FC = () => {
   const [ongoing, setOngoing] = useState(false);
   const { data: signer } = useSigner();
   const { chain, chains } = useNetwork();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const { address } = useAccount();
-  const NFT_STORAGE_TOKEN = process.env.NFT_STORAGE_TOKEN || "";
-  // const NFT_STORAGE_TOKEN =""
+  const NFT_STORAGE_TOKEN =
+    process.env.NFT_STORAGE_TOKEN ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDQzOTMzNGNhNkYzMzk4YTlBNWNGOUUzNjgwZWNkZWRjOTg5QkE4ODQiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY2Mzc0NDM3ODYxOCwibmFtZSI6IkFQSSJ9.XP_8MkeqQ_ooW5W9Gs5bPGY95qPGVMV1uMr12ImyJXE";
   const client = new NFTStorage({ token: NFT_STORAGE_TOKEN });
 
   const handleChangeNFTContractAddress = (e: any) => {
@@ -100,7 +124,7 @@ export const Main: React.FC = () => {
   };
 
   const decentralizeMetadata = async () => {
-    console.log(address)
+    console.log(address);
     setOngoing(true);
     let transaction;
     if (nftPlatform == "chocomint") {
@@ -118,13 +142,13 @@ export const Main: React.FC = () => {
       setOngoing(false);
       return;
     }
-    
+
     const nftContract = new ethers.Contract(nftContractAddress, chocomoldABI, signer);
-const owner = await nftContract.owner()
+    const owner = await nftContract.owner();
     if (owner != address) {
-      console.log("Error : You are not an owner of this contract")
+      console.log("Error : You are not an owner of this contract");
       setOngoing(false);
-      return
+      return;
     }
     const metadata = await nftContract.defaultBaseURI();
     const chainId = networks[network].chainId;
@@ -142,12 +166,10 @@ const owner = await nftContract.owner()
     const cid = await uploadFolderToIPFS(nftContractAddress);
     console.log("New URI is been setting");
     const uri = IPFSURI + cid;
-    const transaction = await nftContract
-      .setCustomBaseURI(uri)
-      .catch(() => {
-        setOngoing(false);
-        return
-      });
+    const transaction = await nftContract.setCustomBaseURI(uri).catch(() => {
+      setOngoing(false);
+      return;
+    });
     if (!transaction) return;
     toast({
       render: () => (
@@ -181,11 +203,14 @@ const owner = await nftContract.owner()
     const openseaContract = new ethers.Contract(openseaContractAddress, openseaABI, signer);
     const maxSupply = await openseaContract.maxSupply(tokenId);
     const balance = await openseaContract.balanceOf(address, tokenId);
-    if (maxSupply != balance) {
+    console.log(Number(maxSupply), "maxSupply");
+    console.log(Number(balance), "balance");
+    if (Number(maxSupply) != Number(balance)) {
       console.log("Error : You have to have all tokens");
       setOngoing(false);
       return;
-    } const metadata = await openseaContract.uri(tokenId);
+    }
+    const metadata = await openseaContract.uri(tokenId);
     console.log(metadata.slice(0, -6));
     let tokenUri = metadata.slice(0, -6) + "/" + tokenId;
     try {
@@ -213,7 +238,7 @@ const owner = await nftContract.owner()
       setOngoing(false);
       return;
     });
-    if(!transaction)return
+    if (!transaction) return;
     toast({
       render: () => (
         <Box color="white" p={3} bg={"gray"} rounded={"md"}>
@@ -311,6 +336,40 @@ const owner = await nftContract.owner()
 
       {isSearched && (
         <>
+          <Modal isOpen={isOpen} onClose={onClose} scrollBehavior={"inside"}>
+            <ModalOverlay />
+            <ModalContent padding={"4"}>
+              <ModalCloseButton />
+              <ModalBody>
+                <Alert status="error">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>You&apos;ll never go back to Opensea</AlertTitle>
+                    <AlertDescription>
+                      Are you really sure want to escape from Opensea and go into NFT.Storage world ?
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+                <Box mt="5">
+                  <Image src="img/icons/nftstorage.jpeg" alt="Dan Abramov" />
+                </Box>
+                <Flex mt="5" justify={"center"}>
+                  <Button mr="5" onClick={onClose}>
+                    Close
+                  </Button>
+                  <Button
+                    colorScheme={"blue"}
+                    onClick={() => {
+                      decentralizeMetadata;
+                      onClose;
+                    }}
+                  >
+                    Let&apos; go
+                  </Button>
+                </Flex>
+              </ModalBody>
+            </ModalContent>
+          </Modal>
           <Box mt={"5"}>
             <Flex>
               <Text>Contract Address: </Text>
@@ -348,7 +407,7 @@ const owner = await nftContract.owner()
               mt={"5"}
               disabled={network && nftPlatform && (nftContractAddress || tokenId) ? false : true}
             >
-              Select NFT
+              Get NFT Information from Moralis
             </Button>
           ) : (
             <>
@@ -369,7 +428,7 @@ const owner = await nftContract.owner()
                 </Button>
                 <Button
                   width={"100%"}
-                  onClick={decentralizeMetadata}
+                  onClick={onOpen}
                   fontSize={"sm"}
                   colorScheme={"blue"}
                   rounded={"2xl"}
