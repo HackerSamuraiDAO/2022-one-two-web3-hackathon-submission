@@ -232,8 +232,8 @@ export const Main: React.FC = () => {
     }
     console.log("Current URI:" + tokenUri);
     const cid = await uploadFileToIPFS(tokenId);
-    console.log("New URI is been setting");
     const uri = IPFSURI + cid;
+    console.log(`New URI (${uri}) is been setting`);
     const transaction = await openseaContract.setURI(tokenId, uri).catch(() => {
       setOngoing(false);
       return;
@@ -241,9 +241,9 @@ export const Main: React.FC = () => {
     if (!transaction) return;
     toast({
       render: () => (
-        <Box color="white" p={3} bg={"gray"} rounded={"md"}>
+        <Box color="white" p={3} bg={"green"} rounded={"md"}>
           <CheckCircleIcon mr="2" />
-          Please wait for confirmation:{" "}
+          Tx Hash is :{" "}
           <Link
             textDecoration={"underline"}
             fontSize="sm"
@@ -360,8 +360,8 @@ export const Main: React.FC = () => {
                   <Button
                     colorScheme={"blue"}
                     onClick={() => {
-                      decentralizeMetadata;
-                      onClose;
+                      onClose();
+                      decentralizeMetadata();
                     }}
                   >
                     Let&apos; go
